@@ -52,7 +52,25 @@ def run(verbose: bool = True) -> dict:
         "best_region": min(sustainability.REGION_CARBON, key=sustainability.REGION_CARBON.get),
     }
 
-    md = report.build_report(baseline, optimized, levers, sustainability=sust)
+    cache = r2["cache_economics"]
+    reasoning = r2["reasoning_budget"]
+    extensions = [
+        (
+            "Cache economics: break-even is "
+            f"{cache['break_even_reads']} reads; observed average is "
+            f"{cache['avg_cache_reads']} reads/prefix, so cache is enabled for "
+            f"{cache['groups_worth_it']}/{cache['groups_total']} prefix groups."
+        ),
+        (
+            "Reasoning budget: reasoning is "
+            f"{reasoning['traffic_pct']}% of traffic but {reasoning['cost_pct']}% of optimized cost "
+            f"and {reasoning['wh_pct']}% of inference Wh. A 10% cap is already satisfied; "
+            f"a 5% default cap saves about ${reasoning['cap_5pct']['savings_daily'] * DAYS:,.0f}/month "
+            f"and {reasoning['cap_5pct']['wh_savings_daily'] * DAYS:,.0f} Wh/month."
+        ),
+    ]
+
+    md = report.build_report(baseline, optimized, levers, sustainability=sust, extensions=extensions)
     out_md = os.path.join(ROOT, "outputs", "report.md")
     os.makedirs(os.path.dirname(out_md), exist_ok=True)
     with open(out_md, "w") as f:

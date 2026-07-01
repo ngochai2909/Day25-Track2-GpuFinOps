@@ -60,6 +60,26 @@ def break_even_utilization(discount_frac: float) -> float:
     return max(0.0, min(1.0, 1.0 - discount_frac))
 
 
+def cache_break_even_reads(write_cost: float = 1.0, read_discount: float = 0.10) -> float:
+    """Reads needed for a cached prefix to pay back its write cost.
+
+    Values are normalized to the normal uncached input-token price. If writing a
+    prefix costs 1.0x and cached reads are billed at 0.10x, each read saves 0.90x,
+    so break-even is 1 / 0.90 = 1.11 reads.
+    """
+    saved_per_read = 1.0 - read_discount
+    if write_cost <= 0:
+        return 0.0
+    if saved_per_read <= 0:
+        return float("inf")
+    return write_cost / saved_per_read
+
+
+def cache_is_worth_it(avg_cache_reads: float, write_cost: float = 1.0, read_discount: float = 0.10) -> bool:
+    """Return True when prompt-cache reads recover the cache write cost."""
+    return avg_cache_reads >= cache_break_even_reads(write_cost, read_discount)
+
+
 def recommend_tier(hours_per_day: float, interruptible: bool, reserved_discount: float = 0.45) -> str:
     """Pick a purchasing tier from a workload's duty cycle + interruptibility.
 
